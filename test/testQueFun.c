@@ -54,7 +54,7 @@ int main()
 	}
 	gloable_msgQue_clock = (mqd_t)retval;
 	INFO("gloable_msgQue_clock is: %d. \n", (mqd_t)retval);
-
+	/*
 	retval = sendFunc();
 	if(0 == retval)
 	{
@@ -64,6 +64,40 @@ int main()
 			ERROR("receive failed .\n");
 		}
 	}
+	*/
+
+	//test function of thread
+	pthread_t threadPid = 0;
+	retval = create_thread(&threadPid, (void*)(&sendFunc), NULL);
+	if(0 != retval)
+	{
+		ERROR("create send thread failed .\n");
+		return retval;
+	}
+	INFO("send pid is: %lu.\n", threadPid);
+	retval = join_thread(threadPid, NULL);
+	if(0 != retval)
+	{
+		ERROR("join send thread failed .\n");
+		return retval;
+	}
+
+	threadPid = 0;
+	retval = create_thread(&threadPid, (void*)(&recvFunc), NULL);
+	if(0 != retval)
+	{
+		ERROR("create recv thread failed .\n");
+		return retval;
+	}
+	INFO("recv pid is: %lu\n", threadPid);
+	retval = join_thread(threadPid, NULL);
+	if(0 != retval)
+	{
+		ERROR("join rece thread failed .\n");
+		return retval;
+	}
+	INFO("create thread and send msg queue end .\n");
+	
 	
 	return 0;
 }

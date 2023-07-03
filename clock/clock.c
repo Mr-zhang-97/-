@@ -48,8 +48,16 @@ int unlink_msgQue(msg_queu_type queTyep)
 	}
 	if(0 != retval)
 	{
-		ERROR("unlink msg queue failed errno is: %d.\n", errno);
-		return -1;
+		//warning but not error for: unlink first then create;
+		if(2 == errno)
+		{
+			WARNING("msg queue do not exist .\n");
+			return 0;
+		}
+		else{
+			ERROR("unlink msg queue failed errno is: %d.\n", errno);
+			return -1;
+		}
 	}
 	return 0;
 }
@@ -105,17 +113,17 @@ int recv_msgQue(mqd_t mq, char *msg_ptr, size_t msg_len)
 }
 
 /// @brief create a thread in linux	//TODO check if function had been added to other thread, count it
-/// @param [in]pid :pid of a thread
+/// @param [out]pid :pid of a thread
 /// @param [in]start_fun :funtion run in thread
 /// @param [in]arg :parameter for funtion 
 /// @return 0 success / failed
-int create_thread(pthread_t pid, void*(*start_fun)(void*), void* arg)
+int create_thread(pthread_t* pid, void*(*start_fun)(void*), void* arg)
 {
-	assert(pid > 0);
 	assert(start_fun);
+	assert(pid);
 
 	int retval = 0;
-	retval = pthread_create(&pid, NULL, start_fun, arg);
+	retval = pthread_create(pid, NULL, start_fun, arg);
 	if(0 != retval)
 	{
 		ERROR("create thread failed, errno is:%d.\n", retval);

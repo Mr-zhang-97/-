@@ -28,7 +28,7 @@ int send_msgQue(mqd_t mq, const char *msg_ptr, size_t msg_len);
 
 int recv_msgQue(mqd_t mq, char *msg_ptr, size_t msg_len);
 
-int create_thread(pthread_t pid, void *(*start_fun)(void *), void *arg);
+int create_thread(pthread_t* pid, void *(*start_fun)(void *), void *arg);
 
 int join_thread(pthread_t pid, int *retval);
 
