@@ -1,4 +1,10 @@
 #include "../clock/clock.c"
+#include <semaphore.h>
+
+pthread_mutex_t mutexxLock = PTHREAD_MUTEX_INITIALIZER;
+sem_t sem_a, sem_b;
+int sum = 0;
+int stop = 0;
 
 static int sendFunc(void)
 {
@@ -37,6 +43,29 @@ static int recvFunc(void)
 	}
 	return 0;
 }
+//a funny question: print a and b in turn;
+void printA(void)
+{
+	int j = 0;
+	while(j < 25){
+		sem_wait(&sem_a);
+		j ++;
+		printf("A \n");
+		sem_post(&sem_b);
+	}
+}
+void printB(void)
+{
+	int i = 0;
+	while (i < 25)
+	{
+		sem_wait(&sem_b);
+		i++;
+		printf("B \n");
+		sem_post(&sem_a);
+	}
+	
+}
 int main()
 {
 	int retval =  0;
@@ -66,31 +95,37 @@ int main()
 	}
 	*/
 
+	pthread_mutex_init(&mutexxLock, NULL);
+	sem_init(&sem_a, 0, 1);
+	sem_init(&sem_b, 0, 0);
+
 	//test function of thread
+	//print a and b in turns;
 	pthread_t threadPid = 0;
-	retval = create_thread(&threadPid, (void*)(&sendFunc), NULL);
+	retval = create_thread(&threadPid, (void*)(&printA), NULL);
 	if(0 != retval)
 	{
 		ERROR("create send thread failed .\n");
 		return retval;
 	}
 	INFO("send pid is: %lu.\n", threadPid);
+	
+	pthread_t threadPid2 = 0;
+	retval = create_thread(&threadPid2, (void*)(&printB), NULL);
+	if(0 != retval)
+	{
+		ERROR("create recv thread failed .\n");
+		return retval;	
+	}
+	INFO("recv pid is: %lu \n", threadPid2);
+
 	retval = join_thread(threadPid, NULL);
 	if(0 != retval)
 	{
 		ERROR("join send thread failed .\n");
 		return retval;
 	}
-
-	threadPid = 0;
-	retval = create_thread(&threadPid, (void*)(&recvFunc), NULL);
-	if(0 != retval)
-	{
-		ERROR("create recv thread failed .\n");
-		return retval;
-	}
-	INFO("recv pid is: %lu\n", threadPid);
-	retval = join_thread(threadPid, NULL);
+	retval = join_thread(threadPid2, NULL);
 	if(0 != retval)
 	{
 		ERROR("join rece thread failed .\n");

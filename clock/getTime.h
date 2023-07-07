@@ -9,4 +9,12 @@ typedef struct tm time_brok;
 
 void get_timeSec(time_sec *ptime);
 
-int get_timeBrok(const time_sec *ptimeSec, time_brok *ptimeBrok);
+int trans_timeSec2timeBrok(const time_sec *ptimeSec, time_brok *ptimeBrok);
+
+char *trans_timeSec2timeStr(const time_sec *ptimeSec);
+
+time_sec trans_timeBrok2timeSec(time_brok *p_time_brok);
+
+int get_startTime_today(time_sec time_sec_out);
+
+int get_endTime_today(time_sec time_sec_out);
