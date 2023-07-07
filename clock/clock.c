@@ -1,5 +1,11 @@
 #include "clock.h"
 
+//lock for all_schedule
+pthread_mutex_t allSchedulLock = PTHREAD_MUTEX_INITIALIZER;
+//lock for today_schedule
+pthread_mutex_t todayScheduleLock = PTHREAD_MUTEX_INITIALIZER;
+mqd_t gloable_msgQue_clock = 0;
+
 /// @brief open a msg queue
 /// @param name :the name of queue
 /// @return -1:open fail / >=0:success, descriptor of queue
@@ -350,7 +356,7 @@ int clockTask_add(clock_time __clockTime)
 
 /// @brief put task into today_schedule, task time should be in today`s range and bigger then now time;
 /// @return 
-static int threadFun_check_task()
+static void* threadFun_check_task(void* arg)
 {
 	int retval = 0;
 	char p_queMsg[MAX_QUEUEMSG_LEN] = {0};
@@ -365,13 +371,13 @@ static int threadFun_check_task()
 		if(-1 == retval)
 		{
 			ERROR("get_startTime_today failed .\n");
-			return -1;
+			retval = -1;
 		}
 		retval = get_endTime_today(todayEndTime);
 		if(-1 == retval)
 		{
 			ERROR("get_endTime_today failed .\n");
-			return -1;
+			retval = -1;
 		}
 
 		retval = recv_msgQue(gloable_msgQue_clock, p_queMsg, MAX_QUEUEMSG_LEN);
@@ -403,25 +409,24 @@ static int threadFun_check_task()
 			if (-1 == retval)
 			{
 				ERROR("get_startTime_today failed .\n");
-				return -1;
+				return NULL;
 			}
 			retval = get_endTime_today(todayEndTime);
 			if (-1 == retval)
 			{
 				ERROR("get_endTime_today failed .\n");
-				return -1;
+				return NULL;
 			}
 		}
 		sleep(1);
 	}
 	
-	return 0;
+	return NULL;
 }
 
 //we need clear goal to build clear task; date struct should be expandable
-static int threadFunc_exec_task()
+static void* threadFunc_exec_task(void* arg)
 {
-	int retval = 0;
 	time_sec nowTime = 0;
 	time_sec planStartTime = 0;
 	clock_list* ptmp_clock_list = NULL;
@@ -451,7 +456,7 @@ static int threadFunc_exec_task()
 		
 	}
 	
-	return retval;
+	return NULL;
 }
 
 /// @brief start clock task;interface for users

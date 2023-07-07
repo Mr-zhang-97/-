@@ -1,3 +1,5 @@
+#ifndef _CLOCK_H_
+#define _CLOCK_H_
 #include <mqueue.h>
 #include <time.h>
 #include <stdio.h>
@@ -16,7 +18,6 @@
 #define MAX_QUEMSG_NUM 10
 #define MSG_QUEUE_CLOCK	"/msg_queue_clock"
 #define __USE_MISC 1
-mqd_t gloable_msgQue_clock = 0;
 
 typedef enum _MSG_QUEUE_TYPE{
 	clock_queue = 0
@@ -54,13 +55,8 @@ typedef struct __CLOCK_LIST
 }clock_list;
 
 #define MAX_SCHEDULE_NUM 10
-clock_list today_schedule = {0};
-clock_time all_schedul[MAX_SCHEDULE_NUM] = {0};
-
-//lock for all_schedule
-pthread_mutex_t allSchedulLock = PTHREAD_MUTEX_INITIALIZER;
-//lock for today_schedule
-pthread_mutex_t todayScheduleLock = PTHREAD_MUTEX_INITIALIZER;
+clock_list today_schedule;
+clock_time all_schedul[MAX_SCHEDULE_NUM];
 
 #define LOCK(mutexLock)		pthread_mutex_lock(&mutexLock)
 #define UNLOCK(mutexLock)	pthread_mutex_lock(&mutexLock)
@@ -92,3 +88,5 @@ int clockTask_clear();
 int clockTask_add(clock_time __clockTime);
 
 int start_clock_task();
+
+#endif

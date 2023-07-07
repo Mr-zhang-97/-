@@ -1,12 +1,15 @@
-#include "../clock/clock.c"
+#include "../clock/clock.h"
+#include "../clock/getTime.h"
 #include <semaphore.h>
+
+extern mqd_t gloable_msgQue_clock;
 
 pthread_mutex_t mutexxLock = PTHREAD_MUTEX_INITIALIZER;
 sem_t sem_a, sem_b;
 int sum = 0;
 int stop = 0;
 
-static int sendFunc(void)
+__attribute__((unused)) static int sendFunc(void)
 {
 	char* sendStr = "hello";
 	int retval = 0;
@@ -22,7 +25,7 @@ static int sendFunc(void)
 	}
 	return 0;
 }
-static int recvFunc(void)
+__attribute__((unused)) static int recvFunc(void)
 {
 	int retval = 0;
 	char buf[10];

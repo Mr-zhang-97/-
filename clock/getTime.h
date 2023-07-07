@@ -1,3 +1,5 @@
+#ifndef _GETTIME_H_
+#define _GETTIME_H_
 #include <time.h>
 #include <assert.h>
 #include "logOutput.h"
@@ -18,3 +20,5 @@ time_sec trans_timeBrok2timeSec(time_brok *p_time_brok);
 int get_startTime_today(time_sec time_sec_out);
 
 int get_endTime_today(time_sec time_sec_out);
+
+#endif
