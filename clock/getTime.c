@@ -55,9 +55,8 @@ time_sec trans_timeBrok2timeSec(time_brok* p_time_brok)
 }
 
 /// @brief get start time of today 0:0:0
-/// @param time_sec_out 
 /// @return -1 failed / success time_sec
-int get_startTime_today(time_sec time_sec_out)
+long int get_startTime_today()
 {
 	time_sec tmp_timeSec = 0;
 	time_brok tmp_timeBrok = {0};
@@ -77,12 +76,10 @@ int get_startTime_today(time_sec time_sec_out)
 	tmp_timeBrok.tm_sec = 0;
 	tmp_timeBrok.tm_isdst = 0;
 
-	time_sec_out = trans_timeBrok2timeSec(&tmp_timeBrok);
-
-	return retval;
+	return trans_timeBrok2timeSec(&tmp_timeBrok);
 }
 
-int get_endTime_today(time_sec time_sec_out)
+long int get_endTime_today()
 {
 	time_sec tmp_timeSec = 0;
 	time_brok tmp_timeBrok = {0};
@@ -102,7 +99,5 @@ int get_endTime_today(time_sec time_sec_out)
 	tmp_timeBrok.tm_sec = 59;
 	tmp_timeBrok.tm_isdst = 0;
 
-	time_sec_out = trans_timeBrok2timeSec(&tmp_timeBrok);
-
-	return retval;
+	return trans_timeBrok2timeSec(&tmp_timeBrok);
 }

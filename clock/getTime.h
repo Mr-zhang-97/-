@@ -17,8 +17,8 @@ char *trans_timeSec2timeStr(const time_sec *ptimeSec);
 
 time_sec trans_timeBrok2timeSec(time_brok *p_time_brok);
 
-int get_startTime_today(time_sec time_sec_out);
+long int get_startTime_today();
 
-int get_endTime_today(time_sec time_sec_out);
+long int get_endTime_today();
 
 #endif

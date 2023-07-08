@@ -13,6 +13,7 @@
 #include "logOutput.h"
 #include "getTime.h"
 #include <unistd.h>
+#include <semaphore.h>
 
 #define MAX_QUEUEMSG_LEN 10
 #define MAX_QUEMSG_NUM 10
@@ -57,6 +58,7 @@ typedef struct __CLOCK_LIST
 #define MAX_SCHEDULE_NUM 10
 clock_list today_schedule;
 clock_time all_schedul[MAX_SCHEDULE_NUM];
+sem_t globle_clock_sem;
 
 #define LOCK(mutexLock)		pthread_mutex_lock(&mutexLock)
 #define UNLOCK(mutexLock)	pthread_mutex_lock(&mutexLock)
@@ -83,10 +85,11 @@ int listNode_add(clock_list *phead, clock_time *pclockTime);
 
 int listNode_add_inOrder(clock_list *phead, clock_time *pclockTime);
 
-int clockTask_clear();
+void clockTask_clear();
 
 int clockTask_add(clock_time __clockTime);
 
-int start_clock_task();
+void *start_clock_task(void *arg);
 
 #endif
+

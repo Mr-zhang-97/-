@@ -69,7 +69,8 @@ void printB(void)
 	}
 	
 }
-int main()
+
+__attribute__((unused)) int _checkSynchronization_main()
 {
 	int retval =  0;
 	retval = unlink_msgQue(clock_queue);
@@ -137,5 +138,46 @@ int main()
 	INFO("create thread and send msg queue end .\n");
 	
 	
+	return 0;
+}
+
+int main()
+{
+	int retval = 0;
+	pthread_t pid_start_clock_task = 0;
+
+	clock_time my_clockTime;
+	memset(&my_clockTime, 0, sizeof(clock_time));
+	sem_init(&globle_clock_sem, 0, 0);
+
+	my_clockTime.tm_year = 2023;
+	my_clockTime.tm_mon = 6;
+	my_clockTime.tm_mday = 8;
+	my_clockTime.tm_hour = 10;
+	my_clockTime.tm_min = 30;
+	my_clockTime.tm_sec = 59;
+
+	retval = create_thread(&pid_start_clock_task, &start_clock_task, NULL);
+	if(0 != retval)
+	{
+		ERROR("start_clock_task failed. \n");
+	}
+	INFO("add task start .\n");
+	clockTask_clear();
+	INFO("clear task end. \n");
+	retval = clockTask_add(my_clockTime);
+	if(0 != retval)
+	{
+		ERROR("clockTask_add failed .\n");
+		return -1;
+	}
+	INFO("add task end .\n");
+
+	retval = join_thread(pid_start_clock_task, NULL);
+	if(0 != retval)
+	{
+		ERROR("join pid_start_clock_task failed .\n");
+		return retval;
+	}
 	return 0;
 }

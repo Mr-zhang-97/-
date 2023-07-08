@@ -111,7 +111,7 @@ int recv_msgQue(mqd_t mq, char *msg_ptr, size_t msg_len)
 	retval = mq_receive(mq, msg_ptr, msg_len, 0);
 	if(-1 == retval)
 	{
-		ERROR("recevie message failed");
+		ERROR("recevie message failed, errno:%d. err string:[%s]. \n", errno, strerror(errno));
 		return retval;
 	}
 
@@ -291,7 +291,8 @@ int listNode_add_inOrder(clock_list* phead, clock_time* pclockTime)
 clock_list* listNode_delete(int n, clock_list* phead)
 {
 	assert(phead);
-	assert(n>=1 && n<=phead->size);
+	assert(n>=1);
+	assert(n<=phead->size);
 
 	clock_list* ptmp_head = NULL;
 	clock_list* ptmp_pre = NULL;
@@ -321,15 +322,27 @@ clock_list* listNode_delete(int n, clock_list* phead)
 	return phead;
 }
 
+/// @brief y-m-d h-m-s, every item is empty, this clock_time is empty;
+/// @param [in]p_clock_time 
+/// @return 1 empty / 0 not
+static int is_clockTimeEmpty(const clock_time* p_clock_time)
+{
+	if(0 == (p_clock_time->tm_year | p_clock_time->tm_mon | p_clock_time->tm_mday |
+		p_clock_time->tm_hour | p_clock_time->tm_min | p_clock_time->tm_sec))
+	{
+		return 1;
+	}
+	return 0;
+}
+
 /// @brief delete all items in all_schedul;interface for users
 /// @return 0 success
-int clockTask_clear()
+void clockTask_clear()
 {
-	LOCK(allSchedulLock);
+	//LOCK(allSchedulLock);
 	memset(&all_schedul, 0, MAX_SCHEDULE_NUM*sizeof(clock_time));
-	UNLOCK(allSchedulLock);
+	//UNLOCK(allSchedulLock);
 
-	return 0;
 }
 
 /// @brief add an item to all_schedul, if its fulled, not insert but WARNING; interface for users
@@ -338,19 +351,38 @@ int clockTask_clear()
 int clockTask_add(clock_time __clockTime)
 {
 	int count = 0;
+	char* sendStr = "hello";
+	int retval = 0;
+
+	sem_wait(&globle_clock_sem);
 	for (count = 0; count < MAX_SCHEDULE_NUM; count++)
 	{
-		if (&(all_schedul[count]) == NULL)
+		if (is_clockTimeEmpty(&(all_schedul[count])))
 		{
-			LOCK(allSchedulLock);
+			//LOCK(allSchedulLock);
+			__clockTime.tm_year = __clockTime.tm_year - 1900;
 			memcpy(&all_schedul[count], &__clockTime, sizeof(clock_time));
-			UNLOCK(allSchedulLock);
+			//UNLOCK(allSchedulLock);
+			break;
 		}
 	}
 	if(count == MAX_SCHEDULE_NUM)
 	{
 		WARNING("all schedule is fulled, do not insert .\n");
 	}
+
+	//notify clock msg queue
+	if(gloable_msgQue_clock != 0)
+	{
+		INFO("gloable_msgQue_clock is: %d. \n", gloable_msgQue_clock);
+		retval = send_msgQue(gloable_msgQue_clock, sendStr, strlen(sendStr));
+		if(0 != retval)
+		{
+			ERROR("send queue failed.\n");
+			return retval;
+		}
+	}
+
 	return 0;
 }
 
@@ -367,14 +399,14 @@ static void* threadFun_check_task(void* arg)
 
 	while (1)
 	{
-		retval = get_startTime_today(todayStartTime);
-		if(-1 == retval)
+		todayStartTime = get_startTime_today();
+		if(-1 == todayStartTime)
 		{
 			ERROR("get_startTime_today failed .\n");
 			retval = -1;
 		}
-		retval = get_endTime_today(todayEndTime);
-		if(-1 == retval)
+		todayEndTime = get_endTime_today();
+		if(-1 == todayEndTime)
 		{
 			ERROR("get_endTime_today failed .\n");
 			retval = -1;
@@ -395,6 +427,7 @@ static void* threadFun_check_task(void* arg)
 				if(planTime >= nowTime && planTime <= todayEndTime)
 				{
 					listNode_add_inOrder(&today_schedule, ptmp_planTime);
+					INFO("add task time to today schedule. \n");
 				}else{
 					WARNING("all_schedule[%d], time sec is:[%lu], not insert .\n", i, planTime);
 				}
@@ -440,9 +473,9 @@ static void* threadFunc_exec_task(void* arg)
 			planStartTime = trans_timeBrok2timeSec((time_brok*)&(ptmp_clock_list->clock_time));
 			get_timeSec(&nowTime);
 
-			if(planStartTime <= nowTime)
+			if(planStartTime >0 && planStartTime <= nowTime)
 			{
-				INFO("start to play clock audio .\n");
+				INFO("start to play clock audio, start play time:[%ld], now time:[%ld].\n", planStartTime, nowTime);
 				sleep(10);
 				INFO("play audio end, clock over .\n");
 				//today_schedule is arranged in order, so execute and delete the first one;
@@ -461,7 +494,7 @@ static void* threadFunc_exec_task(void* arg)
 
 /// @brief start clock task;interface for users
 /// @return -1 faild / 0 success
-int start_clock_task()
+void* start_clock_task(void* arg)
 {
 	int retval = 0;
 	pthread_t pid_checkTask = 0;
@@ -470,35 +503,46 @@ int start_clock_task()
 	INIT_LOCK(allSchedulLock);
 	INIT_LOCK(todayScheduleLock);
 
+	//create clock msg queue 
+	retval = unlink_msgQue(clock_queue);
+	if(0 != retval)
+	{
+		ERROR("unlink msg queue failed .\n");
+	}
+	retval = open_msgQue(clock_queue);
+	if(-1 == retval)
+	{
+		ERROR("open msg queue failed .\n");
+	}
+	gloable_msgQue_clock = (mqd_t)retval;
+
 	memset(&all_schedul, 0, MAX_SCHEDULE_NUM*sizeof(clock_time));
 	memset(&today_schedule, 0, sizeof(clock_list));
+	sem_post(&globle_clock_sem);
 
 	retval = create_thread(&pid_checkTask, &threadFun_check_task, NULL);
 	if(0 != retval)
 	{
 		ERROR("create threadFun_check_task failed .\n");
-		return -1;
 	}
 	
 	retval = create_thread(&pid_execTask, &threadFunc_exec_task, NULL);
 	if(0 != retval)
 	{
 		ERROR("create threadFunc_exec_task failed .\n");
-		return -1;
 	}
+	INFO("create task end. \n");
 
 	retval = join_thread(pid_checkTask, NULL);
 	if(0 != retval)
 	{
 		ERROR("join threadFun_check_task failed .\n");
-		return -1;
 	}
 	retval = join_thread(pid_execTask, NULL);
 	if(0 != retval)
 	{
 		ERROR("join threadFunc_exec_task failed .\n");
-		return -1;
 	}
 
-	return retval;
+	return NULL;
 }
